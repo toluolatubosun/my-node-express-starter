@@ -1,4 +1,4 @@
-import Joi from "joi";
+import { z } from "zod";
 import bcryptjs from "bcryptjs";
 import { Request } from "express";
 import { CONFIGS } from "@/configs";
@@ -10,20 +10,21 @@ import mailService from "@/services/mail.service";
 import CustomError from "@/utilities/custom-error";
 import { TOKEN_TYPES } from "@/models/token.model";
 import TokenService from "@/services/token.service";
+import { extractZodError } from "@/utilities/helpful-methods";
 
 class AuthService {
     async register({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                first_name: Joi.string().trim().required().label("first name"),
-                last_name: Joi.string().trim().required().label("last name"),
-                email: Joi.string().trim().email().lowercase().required().label("email"),
-                password: Joi.string().required().label("password"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    first_name: z.string().trim(),
+                    last_name: z.string().trim(),
+                    email: z.string().trim(),
+                    password: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         const emailExist = await UserModel.findOne({ email: data.body.email });
         if (emailExist) throw new CustomError("email already exists", 400);
@@ -53,15 +54,15 @@ class AuthService {
     }
 
     async login({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                email: Joi.string().trim().email().lowercase().required().label("email"),
-                password: Joi.string().required().label("password"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    email: z.string().trim(),
+                    password: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         // Check if email exists
         const user = await UserModel.findOne({ email: data.body.email }).select("+password");
@@ -84,15 +85,15 @@ class AuthService {
     }
 
     async verifyEmail({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                user_id: Joi.string().required().label("user id"),
-                verification_otp: Joi.string().trim().label("verification otp"), // can either be a token or a code
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    user_id: z.string().trim(),
+                    verification_otp: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         // Check if user exists
         const user = await UserModel.findOne({ _id: data.body.user_id });
@@ -117,14 +118,14 @@ class AuthService {
     }
 
     async requestEmailVerification({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                user_id: Joi.required().label("user id"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    user_id: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         // Check if user exists
         const user = await UserModel.findOne({ _id: data.body.user_id });
@@ -143,14 +144,15 @@ class AuthService {
     }
 
     async requestPasswordReset({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                email: Joi.string().trim().email().lowercase().required().label("email"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    email: z.string().trim(),
+                    verification_otp: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         // Check if email exists by a user
         const user = await UserModel.findOne({ email: data.body.email });
@@ -169,16 +171,15 @@ class AuthService {
     }
 
     async confirmPasswordResetOtp({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                user_id: Joi.string().required().label("user id"),
-                reset_otp: Joi.string().required().label("otp"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
-
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    user_id: z.string().trim(),
+                    reset_otp: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
         if (isValidObjectId(data.body.user_id) !== true) throw new CustomError("invalid user id", 400);
 
         // Check if user exists
@@ -195,16 +196,16 @@ class AuthService {
     }
 
     async resetPassword({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                user_id: Joi.string().required().label("user id"),
-                reset_otp: Joi.string().required().label("reset otp"),
-                new_password: Joi.string().required().label("new password"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    user_id: z.string().trim(),
+                    reset_otp: z.string().trim(),
+                    new_password: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         // Check if user exists
         const user = await UserModel.findOne({ _id: data.body.user_id });
@@ -227,14 +228,14 @@ class AuthService {
     }
 
     async refreshTokens({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                refresh_token: Joi.required().label("refresh token"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    refresh_token: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         // verify and refresh tokens
         const refreshedTokens = await TokenService.refreshAuthTokens(data.body.refresh_token);
@@ -243,14 +244,14 @@ class AuthService {
     }
 
     async logout({ body }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                refresh_token: Joi.string().allow("", null).optional().label("refresh token"),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    refresh_token: z.string().trim(),
+                }),
+            })
+            .safeParse({ body });
+        if (error) throw new CustomError(extractZodError(error));
 
         if (!data.body.refresh_token) return true;
 

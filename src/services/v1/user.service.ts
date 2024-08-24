@@ -1,38 +1,35 @@
-import Joi from "joi";
+import { z } from "zod";
 import bcryptjs from "bcryptjs";
 import { Request } from "express";
 
 import { CONFIGS } from "@/configs";
-import UserModel from "@/models/user.model";
 import CustomError from "@/utilities/custom-error";
+import UserModel, { IUser } from "@/models/user.model";
+import { extractZodError } from "@/utilities/helpful-methods";
 
 class UserService {
     async getUserSession({ $currentUser }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            $currentUser: Joi.object({
-                _id: Joi.required(),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ $currentUser });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                $currentUser: z.custom<IUser>(),
+            })
+            .safeParse({ $currentUser });
+        if (error) throw new CustomError(extractZodError(error));
 
         return await UserModel.findOne({ _id: data.$currentUser._id });
     }
 
     async updateProfile({ body, $currentUser }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                first_name: Joi.string().trim().required().label("first name"),
-                last_name: Joi.string().trim().required().label("last name"),
-            }),
-            $currentUser: Joi.object({
-                _id: Joi.required(),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body, $currentUser });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    first_name: z.string().trim(),
+                    last_name: z.string().trim(),
+                }),
+                $currentUser: z.custom<IUser>(),
+            })
+            .safeParse({ body, $currentUser });
+        if (error) throw new CustomError(extractZodError(error));
 
         // Check if user exists
         const user = await UserModel.findOneAndUpdate({ _id: data.$currentUser._id }, { $set: data.body }, { new: true });
@@ -42,18 +39,16 @@ class UserService {
     }
 
     async updatePassword({ body, $currentUser }: Partial<Request>) {
-        const { error, value: data } = Joi.object({
-            body: Joi.object({
-                new_password: Joi.string().required().label("new password"),
-                current_password: Joi.string().required().label("current password"),
-            }),
-            $currentUser: Joi.object({
-                _id: Joi.required(),
-            }),
-        })
-            .options({ stripUnknown: true })
-            .validate({ body, $currentUser });
-        if (error) throw new CustomError(error.message, 400);
+        const { error, data } = z
+            .object({
+                body: z.object({
+                    new_password: z.string().trim(),
+                    current_password: z.string().trim(),
+                }),
+                $currentUser: z.custom<IUser>(),
+            })
+            .safeParse({ body, $currentUser });
+        if (error) throw new CustomError(extractZodError(error));
 
         // Check if user exists
         const user = await UserModel.findOne({ _id: data.$currentUser._id }).select("+password");

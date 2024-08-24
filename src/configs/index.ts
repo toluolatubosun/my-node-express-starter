@@ -95,6 +95,12 @@ const CONFIG_BUILDER = {
 
         // App Level Configs
         // ============================================================
+        SOCKET_IO: {
+            USERNAME: "admin",
+            PASSWORD: "password",
+        },
+
+        CORS_ALLOWED_ORIGINS: ["https://admin.socket.io", "http://localhost:3000"],
 
         // e.g
         // STRIPE: {
@@ -125,6 +131,12 @@ const CONFIG_BUILDER = {
 
         // App Level Configs
         // ============================================================
+        SOCKET_IO: {
+            USERNAME: process.env.SOCKET_IO_USERNAME!,
+            PASSWORD: process.env.SOCKET_IO_PASSWORD!,
+        },
+
+        CORS_ALLOWED_ORIGINS: ["https://admin.socket.io", "https://example.com"],
 
         // e.g
         // STRIPE: {

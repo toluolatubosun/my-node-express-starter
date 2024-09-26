@@ -42,7 +42,10 @@ const configurePreRouteMiddleware = (app: Express): Express => {
     app.use(Sentry.Handlers.tracingHandler());
 
     // enable CORS
-    app.use(cors());
+    app.use(cors({
+        credentials: true,
+        origin: [...CONFIGS.CORS_ALLOWED_ORIGINS],
+    }));
 
     // Secure the app by setting various HTTP headers off.
     app.use(helmet({ contentSecurityPolicy: false }));
